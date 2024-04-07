@@ -7,8 +7,6 @@ import {
   MoreHorizontal,
   Search,
 } from 'lucide-react'
-import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/pt-br'
 
 import { IconButton } from './icon-button'
@@ -17,20 +15,18 @@ import { TableHeader } from './table/table-header'
 import { TableCell } from './table/table-cell'
 import { TableRow } from './table/table-row'
 import { api } from '../server/api'
+import attendees from '../pages/attendees'
 
-dayjs.extend(relativeTime)
-dayjs.locale('pt-br')
-
-interface Attendee {
+interface Event {
   id: number
-  name: string
-  email: string
-  event_title: string
-  created_at: string
-  check_in_at: string
+  slug: string
+  title: string
+  details: string
+  maximum_attendee: number
+  attendee_registered: number
 }
 
-export function AttendeeList() {
+export function EventList() {
   const [search, setSearch] = useState(() => {
     const url = new URL(window.location.toString())
 
@@ -51,9 +47,9 @@ export function AttendeeList() {
     return 1
   })
 
-  const [attendees, setAttendees] = useState<Attendee[]>([])
-  const [totalItems, setTotalItems] = useState(0)
-
+  const [events, setEvents] = useState<Event[]>([])
+  // const [totalItems, setTotalItems] = useState(0)
+  const totalItems = events.length
   const totalPages = Math.ceil(totalItems / 10)
 
   function setCurrentSearch(search: string) {
@@ -100,84 +96,59 @@ export function AttendeeList() {
 
   useEffect(() => {
     api
-      .get(
-        `/attendees/158a4fbe-fb41-4487-bfd1-d2a12a2765d4?page=${page}&query=${search}`,
-      )
-      .then((response) => [
-        setAttendees(response.data.attendees),
-        setTotalItems(response.data.pagination.totalItems),
-      ])
+      .get(`/events?page=${page}&query=${search}`)
+      .then((response) => setEvents(response.data.events))
   }, [page, search])
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex gap-3 items-center">
-        <h1 className="text-xl">Participantes</h1>
+        <h1 className="text-xl">Eventos</h1>
 
         <div className="w-72 px-3 py-1.5 border border-white/10 rounded-lg flex items-center gap-3 focus-within:ring-1 focus-within:ring-emerald-300">
           <Search className="size-4 text-emerald-300" />
           <input
             type="text"
             value={search}
-            placeholder="Buscar participantes..."
+            placeholder="Buscar eventos..."
             className="bg-transparent flex-1 outline-none h-auto border-0 p-0 text-sm focus:ring-0"
             onChange={onSearchInputChanged}
           />
         </div>
       </div>
-
       <Table>
         <thead>
           <tr className="border-b border-white/10">
-            <TableHeader style={{ width: 48 }}>
-              <input
-                type="checkbox"
-                className="size-4 bg-black/20 rounded border border-white/10"
-              />
-            </TableHeader>
-
-            <TableHeader>Código</TableHeader>
-            <TableHeader>Paricipante</TableHeader>
-            <TableHeader>Data de inscrição</TableHeader>
-            <TableHeader>Data do check-in</TableHeader>
+            <TableHeader>Evento</TableHeader>
+            <TableHeader>Descrição</TableHeader>
+            <TableHeader>Participantes registrados</TableHeader>
+            <TableHeader>Total de Ingressos</TableHeader>
             <TableHeader style={{ width: 64 }}></TableHeader>
           </tr>
         </thead>
 
         <tbody>
-          {attendees.map((attendee) => {
+          {events.map((event) => {
             return (
               <TableRow
-                key={attendee.id}
+                key={event.id}
                 className="border-b border-white/10 hover:bg-white/5"
               >
                 <TableCell>
-                  <input
-                    type="checkbox"
-                    className="size-4 bg-black/20 rounded border border-white/10"
-                  />
-                </TableCell>
-
-                <TableCell>{attendee.id}</TableCell>
-
-                <TableCell>
-                  <div className="flex flex-col gap-1">
-                    <span className="font-semibold text-white">
-                      {attendee.name}
-                    </span>
-                    <span>{attendee.email}</span>
-                  </div>
+                  <a href={event.slug}>{event.title}</a>
                 </TableCell>
 
                 <TableCell>
-                  {dayjs().locale('ptBR').to(attendee.created_at)}
+                  {!event.details ? 'Sem descrição' : event.details}
                 </TableCell>
 
+                <TableCell>{event.attendee_registered}</TableCell>
+
                 <TableCell>
-                  {attendee.check_in_at === null ? (
-                    <span className="text-zinc-400">Não fez check-in</span>
+                  {!event.maximum_attendee ? (
+                    <span className="text-4xl text-zinc-500">∞</span>
                   ) : (
-                    dayjs().to(attendee.check_in_at)
+                    event.maximum_attendee
                   )}
                 </TableCell>
 
